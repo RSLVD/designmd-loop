@@ -308,7 +308,7 @@ function page() {
     const findings = (x.gate?.findings || []).map((f) => `<li class="f-${f.level}">${esc(f.rule)}: ${esc(f.msg)}</li>`).join('');
     return `
     <div class="sample">
-      <div class="sample-head"><b>${esc(x.id)}</b><span class="he"><button class="mini" onclick="openEditor('${esc(x.path)}')">edit</button><span class="tag ${cls}">${v}</span></span></div>
+      <div class="sample-head"><b>${esc(x.id)}</b><span class="he"><a class="mini" href="/sample/${encodeURIComponent(x.id)}" target="_blank" rel="noopener">view</a><button class="mini" onclick="openEditor('${esc(x.path)}')">edit</button><span class="tag ${cls}">${v}</span></span></div>
       <div class="frame-wrap" onclick="openEditor('${esc(x.path)}')" title="click to edit ${esc(x.path)}">
         <iframe class="frame" src="/sample/${encodeURIComponent(x.id)}" title="${esc(x.id)} sample"></iframe>
         <span class="ec">click to edit</span>
@@ -378,7 +378,7 @@ section.body{padding:40px 0 88px}
 .ec{position:absolute;top:8px;right:8px;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em;background:var(--clay);color:#fff;padding:3px 7px;border-radius:3px;opacity:0;transition:.12s;pointer-events:none}
 .frame-wrap:hover .ec{opacity:1}
 .he{display:flex;align-items:center;gap:8px}
-.mini{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em;background:none;border:1px solid var(--line-2);border-radius:3px;padding:3px 8px;cursor:pointer;color:var(--muted)}
+.mini{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em;background:none;border:1px solid var(--line-2);border-radius:3px;padding:3px 8px;cursor:pointer;color:var(--muted);text-decoration:none;display:inline-block}
 .mini:hover{border-color:var(--clay);color:var(--clay-strong)}
 .ed-scrim{position:fixed;inset:0;background:rgba(26,25,22,.55);opacity:0;pointer-events:none;transition:.18s;z-index:60}
 .ed-scrim.open{opacity:1;pointer-events:auto}
@@ -472,12 +472,12 @@ textarea{min-height:84px;resize:vertical;line-height:1.6}
 
 <div class="panel">
   <h2>The visual test &middot; token gate</h2>
-  <p class="hint">Each screen scored against the spec, live. <b>Click a tile to edit its code</b> and watch the verdict flip.</p>
+  <p class="hint">Each screen scored against the spec, live. <b>edit</b> opens its code in place (save and the verdict flips); <b>view</b> opens the rendered screen in a new tab.</p>
   <div class="samples">${s.samples.map(sampleCard).join('')}</div>
 </div>
 
 <div class="panel">
-  <h2>Tokens &middot; spec vs live code <button class="mini" style="margin-left:8px" onclick="openEditor('${esc(rel(s.cfg.live))}')">edit css</button></h2>
+  <h2>Tokens &middot; spec vs live code <span class="he" style="margin-left:8px"><button class="mini" onclick="openEditor('${esc(rel(s.cfg.live))}')">edit css</button><a class="mini" href="/raw?path=${encodeURIComponent(rel(s.cfg.live))}" target="_blank" rel="noopener">view css</a></span></h2>
   <p class="hint">${driftLine}. Change a token and a new <span class="tag alert">evolved</span> swatch appears, the drift card turns. The code is the source of truth; the spec tracks it.</p>
   <div class="swatches">${specSwatches}${evolvedSwatches}</div>
   ${s.retired.length ? `<h2 style="margin-top:24px">Retired &middot; the gate fails any of these</h2><div class="swatches">${retiredSwatches}</div>` : ''}
@@ -487,8 +487,8 @@ textarea{min-height:84px;resize:vertical;line-height:1.6}
   <h2>Connectors</h2>
   <p class="hint">Where the loop is pointed right now. Saved in <code>designmd-loop.config.json</code>. Click <b>Add connectors</b> to repoint it at your own project.</p>
   <div class="connectors">
-    <div class="conn"><span class="clabel">Spec</span><span class="cval">${esc(rel(s.cfg.spec))}</span></div>
-    <div class="conn"><span class="clabel">Live code</span><span class="cval">${esc(rel(s.cfg.live))}</span></div>
+    <div class="conn"><span class="clabel">Spec</span><span class="he"><span class="cval">${esc(rel(s.cfg.spec))}</span><button class="mini" onclick="openEditor('${esc(rel(s.cfg.spec))}')">edit</button><a class="mini" href="/raw?path=${encodeURIComponent(rel(s.cfg.spec))}" target="_blank" rel="noopener">view</a></span></div>
+    <div class="conn"><span class="clabel">Live code</span><span class="he"><span class="cval">${esc(rel(s.cfg.live))}</span><button class="mini" onclick="openEditor('${esc(rel(s.cfg.live))}')">edit</button><a class="mini" href="/raw?path=${encodeURIComponent(rel(s.cfg.live))}" target="_blank" rel="noopener">view</a></span></div>
     <div class="conn"><span class="clabel">Samples</span><span class="cval">${s.samples.length} screen(s)</span></div>
     <div class="conn"><span class="clabel">Claude judge</span><span class="cval">${s.judge ? 'enabled' : 'off'}</span></div>
   </div>
@@ -723,6 +723,14 @@ const server = createServer(async (req, res) => {
     if (!file.startsWith(REPO_ROOT)) return json({ ok: false, error: 'path outside repo' }, 400);
     try { writeFileSync(file, String(content ?? '')); lintCache = null; lintKey = ''; return json({ ok: true }); }
     catch (e) { return json({ ok: false, error: e.message }, 500); }
+  }
+  // Serve a repo file as raw text (for "view css" / "view source" links).
+  if (url === '/raw') {
+    const p = new URL(req.url, 'http://x').searchParams.get('path') || '';
+    const file = resolve(p);
+    if (!file.startsWith(REPO_ROOT) || !existsSync(file)) { res.writeHead(404, { 'content-type': 'text/plain' }); return res.end('not found'); }
+    res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' });
+    return res.end(readFileSync(file));
   }
   // Open a repo file in the OS default editor.
   if (url === '/api/open' && req.method === 'POST') {
