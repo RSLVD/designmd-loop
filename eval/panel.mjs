@@ -352,7 +352,12 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1
 .btn-ghost:hover{border-color:var(--clay);color:var(--clay-strong)}
 .mast .btn-ghost{color:var(--d-txt);border-color:var(--d-line)}.mast .btn-ghost:hover{border-color:var(--clay);color:var(--clay)}
 
+html{scroll-behavior:smooth}
 section.body{padding:40px 0 88px}
+.diagram{overflow-x:auto;padding:4px 0 2px}
+.diagram svg{max-width:820px;width:100%;height:auto;display:block}
+.diagram a{cursor:pointer}
+.diagram a:hover rect{stroke:var(--clay)}
 .statusrow{display:flex;align-items:center;gap:14px;margin-bottom:22px;flex-wrap:wrap}
 .badge{display:inline-block;padding:8px 16px;border-radius:4px;font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase}
 .badge.pass{background:var(--ink);color:var(--bg)}.badge.attn{background:var(--clay);color:#fff}
@@ -471,19 +476,48 @@ textarea{min-height:84px;resize:vertical;line-height:1.6}
 </div>
 
 <div class="panel">
+  <h2>How the loop works &middot; what you get</h2>
+  <p class="hint">Your design system, enforced. <code>DESIGN.md</code> sets the look; the token gate holds every screen to it, the drift monitor catches code that outgrows it, and the deploy gate refuses to ship when either breaks. Click a step to jump to its section.</p>
+  <div class="diagram"><svg viewBox="0 0 820 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Flow: your code becomes a DESIGN.md contract, checked by lint, token gate, judge, and drift monitor, then shipped; drift updates the spec.">
+  <defs>
+    <marker id="pah" markerWidth="9" markerHeight="9" refX="6" refY="4" orient="auto"><path d="M0,0 L7,4 L0,8" style="fill:none;stroke:var(--dim);stroke-width:1.3"/></marker>
+    <marker id="pahc" markerWidth="9" markerHeight="9" refX="6" refY="4" orient="auto"><path d="M0,0 L7,4 L0,8" style="fill:none;stroke:var(--clay);stroke-width:1.5"/></marker>
+  </defs>
+  <rect x="8" y="72" width="118" height="40" rx="4" style="fill:var(--bg);stroke:var(--line-2);stroke-width:1"/>
+  <text x="67" y="96" text-anchor="middle" style="fill:var(--ink);font:600 12px var(--sans)">your code</text>
+  <path d="M126,92 L155,92" style="fill:none;stroke:var(--dim);stroke-width:1.3" marker-end="url(#pah)"/>
+  <a href="#connectors"><rect x="158" y="64" width="140" height="56" rx="4" style="fill:var(--clay);stroke:var(--clay-strong);stroke-width:1"/>
+    <text x="228" y="89" text-anchor="middle" style="fill:#ffffff;font:600 14px var(--sans)">DESIGN.md</text>
+    <text x="228" y="106" text-anchor="middle" style="fill:#f3e7e1;font:10px var(--mono)">the contract</text></a>
+  <path d="M298,92 L330,92" style="fill:none;stroke:var(--dim);stroke-width:1.3" marker-end="url(#pah)"/>
+  <a href="#checks"><rect x="332" y="60" width="120" height="40" rx="4" style="fill:var(--panel);stroke:var(--line-2);stroke-width:1"/><text x="392" y="84" text-anchor="middle" style="fill:var(--ink);font:600 12px var(--sans)">Lint &#8224;</text></a>
+  <a href="#visual-test"><rect x="460" y="60" width="120" height="40" rx="4" style="fill:var(--panel);stroke:var(--line-2);stroke-width:1"/><text x="520" y="84" text-anchor="middle" style="fill:var(--ink);font:600 12px var(--sans)">Token gate</text></a>
+  <a href="#visual-test"><rect x="332" y="106" width="120" height="40" rx="4" style="fill:var(--panel);stroke:var(--line-2);stroke-width:1"/><text x="392" y="130" text-anchor="middle" style="fill:var(--ink);font:600 12px var(--sans)">Judge &#8224;</text></a>
+  <a href="#tokens"><rect x="460" y="106" width="120" height="40" rx="4" style="fill:var(--panel);stroke:var(--line-2);stroke-width:1"/><text x="520" y="130" text-anchor="middle" style="fill:var(--ink);font:600 12px var(--sans)">Drift monitor</text></a>
+  <path d="M580,92 L612,92" style="fill:none;stroke:var(--dim);stroke-width:1.3" marker-end="url(#pah)"/>
+  <a href="#connectors"><rect x="614" y="64" width="150" height="56" rx="4" style="fill:var(--bg);stroke:var(--line-3);stroke-width:1"/>
+    <text x="689" y="89" text-anchor="middle" style="fill:var(--ink);font:600 13px var(--sans)">ship on-spec</text>
+    <text x="689" y="106" text-anchor="middle" style="fill:var(--dim);font:10px var(--mono)">panel · CI · deploy</text></a>
+  <path d="M520,146 L520,176 L228,176 L228,122" style="fill:none;stroke:var(--clay);stroke-width:1.5" marker-end="url(#pahc)"/>
+  <text x="374" y="170" text-anchor="middle" style="fill:var(--clay-strong);font:10px var(--mono)">update on drift</text>
+  <text x="8" y="194" style="fill:var(--dim);font:10px var(--mono)">&#8224; Google / Anthropic CLI &middot; click a step to jump to its section</text>
+  </svg></div>
+</div>
+
+<div class="panel" id="visual-test">
   <h2>The visual test &middot; token gate</h2>
   <p class="hint">Each screen scored against the spec, live. <b>edit</b> opens its code in place (save and the verdict flips); <b>view</b> opens the rendered screen in a new tab.</p>
   <div class="samples">${s.samples.map(sampleCard).join('')}</div>
 </div>
 
-<div class="panel">
+<div class="panel" id="tokens">
   <h2>Tokens &middot; spec vs live code <span class="he" style="margin-left:8px"><button class="mini" onclick="openEditor('${esc(rel(s.cfg.live))}')">edit css</button><a class="mini" href="/raw?path=${encodeURIComponent(rel(s.cfg.live))}" target="_blank" rel="noopener">view css</a></span></h2>
   <p class="hint">${driftLine}. Change a token and a new <span class="tag alert">evolved</span> swatch appears, the drift card turns. The code is the source of truth; the spec tracks it.</p>
   <div class="swatches">${specSwatches}${evolvedSwatches}</div>
   ${s.retired.length ? `<h2 style="margin-top:24px">Retired &middot; the gate fails any of these</h2><div class="swatches">${retiredSwatches}</div>` : ''}
 </div>
 
-<div class="panel">
+<div class="panel" id="connectors">
   <h2>Connectors</h2>
   <p class="hint">Where the loop is pointed right now. Saved in <code>designmd-loop.config.json</code>. Click <b>Add connectors</b> to repoint it at your own project.</p>
   <div class="connectors">
@@ -494,7 +528,7 @@ textarea{min-height:84px;resize:vertical;line-height:1.6}
   </div>
 </div>
 
-<div class="panel">
+<div class="panel" id="checks">
   <h2>Checks</h2>
   <div class="row"><span><span class="dot">&#9679;</span> design.md lint</span><span class="dim">${esc(lintErr)} errors &middot; ${esc(s.lint.warnings)} warnings</span></div>
   <div class="row"><span><span class="dot">&#9679;</span> drift monitor</span><span class="dim">${s.specErr ? 'spec error' : inSync ? 'in sync' : s.evolved.length + ' evolved, ' + s.stale.length + ' stale'}</span></div>
