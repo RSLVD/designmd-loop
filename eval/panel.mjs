@@ -20,7 +20,7 @@
 // (DESIGNMD_LIVE) and that file both override the bundled demo defaults.
 
 import { createServer } from 'node:http';
-import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, readdirSync, statSync, unlinkSync } from 'node:fs';
 import { execSync, spawn } from 'node:child_process';
 import { dirname, join, isAbsolute, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -165,7 +165,7 @@ function snapshot() {
     const expect = s.expect || 'PASS';
     return { id: s.id, path: s.path, expect, gate, asExpected: gate ? gate.verdict === expect : false, missing: !existsSync(file) };
   });
-  return { cfg, name, spec, live, retired, evolved, stale, lint: ln, samples, fixtures: fixtures(), specErr, judge: cfg.judge };
+  return { cfg, name, spec, live, retired, evolved, stale, lint: ln, samples, fixtures: fixtures(), specErr, judge: cfg.judge, connected: existsSync(CONFIG_PATH) };
 }
 
 // ---- Render ------------------------------------------------------------------
@@ -420,6 +420,9 @@ ol.steps li:first-child{border-top:0}ol.steps li b{color:var(--ink)}
 ol.steps li::before{content:counter(s);position:absolute;left:0;top:13px;width:26px;height:26px;border-radius:50%;background:var(--ink);color:var(--bg);font-family:var(--mono);font-size:12px;display:flex;align-items:center;justify-content:center}
 code{font-family:var(--mono);font-size:12px;background:var(--panel-2);border:1px solid var(--line);border-radius:3px;padding:2px 6px;color:var(--ink)}
 .foot{color:var(--dim);font-size:12px;font-family:var(--mono);margin-top:6px}
+.state{display:flex;justify-content:space-between;align-items:center;gap:14px;font-size:14px;color:var(--muted);background:var(--panel-2);border:1px solid var(--line-2);border-radius:4px;padding:12px 14px;margin-bottom:14px}
+.state.on{border-color:var(--clay);background:var(--clay-glow)}
+.state b{color:var(--ink)}
 .connectors{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:4px}
 .conn{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--line);border-radius:4px;padding:12px 14px;background:var(--bg)}
 .conn .clabel{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim)}
@@ -522,7 +525,11 @@ textarea{min-height:84px;resize:vertical;line-height:1.6}
 
 <div class="panel" id="connectors">
   <h2>Connectors</h2>
-  <p class="hint">Where the loop is pointed right now. Saved in <code>designmd-loop.config.json</code>. Click <b>Add connectors</b> to repoint it at your own project.</p>
+  <div class="state ${s.connected ? 'on' : ''}">
+    ${s.connected
+      ? `<span><b>Your project is loaded</b>, overriding the bundled demo (the demo files stay on disk). Saved in <code>designmd-loop.config.json</code>.</span><button class="mini" onclick="resetDemo()">reset to demo</button>`
+      : `<span><b>Showing the bundled demo</b> (Meridian). Click <b>Add connectors</b> to point the loop at your own spec, CSS, and screens. That writes a config and overrides the demo until you reset.</span>`}
+  </div>
   <div class="connectors">
     <div class="conn"><span class="clabel">Spec</span><span class="he"><span class="cval">${esc(rel(s.cfg.spec))}</span><button class="mini" onclick="openEditor('${esc(rel(s.cfg.spec))}')">edit</button><a class="mini" href="/raw?path=${encodeURIComponent(rel(s.cfg.spec))}" target="_blank" rel="noopener">view</a></span></div>
     <div class="conn"><span class="clabel">Live code</span><span class="he"><span class="cval">${esc(rel(s.cfg.live))}</span><button class="mini" onclick="openEditor('${esc(rel(s.cfg.live))}')">edit</button><a class="mini" href="/raw?path=${encodeURIComponent(rel(s.cfg.live))}" target="_blank" rel="noopener">view</a></span></div>
@@ -635,6 +642,7 @@ async function saveEditor(){
   catch{st.textContent='could not reach server';}
 }
 async function openInEditor(){try{await fetch('/api/open',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({path:edPath})});}catch{}}
+async function resetDemo(){if(!confirm('Reset to the bundled demo? This removes designmd-loop.config.json (your files on disk are untouched).'))return;try{await fetch('/api/disconnect',{method:'POST'});setTimeout(()=>location.reload(),200);}catch{}}
 document.addEventListener('keydown',(e)=>{if(e.key==='Escape')closeEditor();if((e.metaKey||e.ctrlKey)&&e.key==='s'&&document.getElementById('editor').classList.contains('open')){e.preventDefault();saveEditor();}});
 
 let cur=0;const STEPS=5;
@@ -731,6 +739,11 @@ const server = createServer(async (req, res) => {
       }
       return json({ ok: false, detail: 'unknown connector type' });
     } catch (e) { return json({ ok: false, detail: e.message }); }
+  }
+
+  if (url === '/api/disconnect' && req.method === 'POST') {
+    try { if (existsSync(CONFIG_PATH)) unlinkSync(CONFIG_PATH); lintCache = null; lintKey = ''; return json({ ok: true }); }
+    catch (e) { return json({ ok: false, error: e.message }, 500); }
   }
 
   if (url === '/api/connect' && req.method === 'POST') {
