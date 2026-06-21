@@ -25,7 +25,7 @@ npm start
 
 That opens a **live panel** in your browser, in the RSLVD design language. In one page you see:
 
-- the **two sample UIs rendered** (`good-sample` passes the gate, `bad-sample` is caught on purpose),
+- a **gallery of sample UIs rendered** and scored (compliant screens pass, the broken one is caught on purpose). Drop any `example/*-sample.html` in and it auto-appears as a tile,
 - every **token as a swatch**, spec vs. your live code,
 - the **lint, drift, and gate** results,
 - a **connector wizard** (the "Add connectors" button) to point the loop at your own project, and

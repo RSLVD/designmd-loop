@@ -32,14 +32,29 @@ const PORT = Number(process.env.PORT) || 4173;
 
 // ---- Config: the connectors. Defaults -> config file -> env. -----------------
 
+// Auto-discover any example/*-sample.html so dropping a new file adds a tile.
+// PASS examples lead, the deliberate failure(s) sort last; 'good' stays first.
+function discoverSamples() {
+  let files = [];
+  try { files = readdirSync(join(REPO_ROOT, 'example')).filter((f) => /-sample\.html?$/i.test(f)); } catch {}
+  const list = files.map((f) => ({
+    id: f.replace(/-sample\.html?$/i, ''),
+    path: 'example/' + f,
+    expect: /bad|fail/i.test(f) ? 'FAIL' : 'PASS',
+  }));
+  list.sort((a, b) =>
+    a.expect !== b.expect ? (a.expect === 'PASS' ? -1 : 1)
+      : a.id === 'good' ? -1 : b.id === 'good' ? 1 : a.id.localeCompare(b.id));
+  return list.length ? list : [
+    { id: 'good', path: 'example/good-sample.html', expect: 'PASS' },
+    { id: 'bad', path: 'example/bad-sample.html', expect: 'FAIL' },
+  ];
+}
 function defaults() {
   return {
     spec: 'DESIGN.md',
     live: process.env.DESIGNMD_LIVE || 'example/tokens.css',
-    samples: [
-      { id: 'good', path: 'example/good-sample.html', expect: 'PASS' },
-      { id: 'bad', path: 'example/bad-sample.html', expect: 'FAIL' },
-    ],
+    samples: discoverSamples(),
     judge: false,
   };
 }
@@ -351,10 +366,10 @@ section.body{padding:40px 0 88px}
 .panel{background:var(--panel);border:1px solid var(--line-2);border-radius:4px;padding:26px 28px;margin-bottom:18px}
 .panel h2{font-size:13px;font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--clay);margin-bottom:6px;font-weight:500}
 .panel .hint{color:var(--muted);font-size:14px;margin:2px 0 18px;max-width:680px}
-.samples{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.samples{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
 .sample{border:1px solid var(--line-2);border-radius:4px;overflow:hidden;background:var(--bg)}
 .sample-head{display:flex;justify-content:space-between;align-items:center;padding:11px 15px;background:var(--panel-2);border-bottom:1px solid var(--line);font-size:13px;font-family:var(--mono)}
-.frame{width:100%;height:200px;border:0;background:#fff;display:block}
+.frame{width:100%;height:150px;border:0;background:#fff;display:block}
 .frame.miss{display:flex;align-items:center;justify-content:center;color:var(--dim);font-family:var(--mono);font-size:12px;height:120px}
 .findings{list-style:none;padding:11px 15px;font-family:var(--mono);font-size:11px;line-height:1.8}
 .f-fail{color:var(--clay-strong)}.f-warn{color:var(--muted)}.f-ok{color:var(--muted)}
