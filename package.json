@@ -7,12 +7,15 @@
   "private": false,
   "engines": { "node": ">=18" },
   "scripts": {
+    "start": "node eval/panel.mjs",
+    "panel": "node eval/panel.mjs",
     "demo": "node eval/runner.mjs --selftest && npm run lint && npm run sync && npm run report",
     "lint": "npx -y @google/design.md lint DESIGN.md",
     "sync": "node eval/sync.mjs",
     "gate": "node eval/runner.mjs --selftest",
     "report": "node eval/runner.mjs --report",
-    "check": "npm run lint && npm run sync"
+    "check": "npm run lint && npm run sync",
+    "test": "node eval/runner.mjs --selftest && node eval/sync.mjs"
   },
   "keywords": ["design.md", "design-system", "design-tokens", "lint", "eval"],
   "repository": { "type": "git", "url": "" }

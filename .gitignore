@@ -4,6 +4,9 @@ node_modules/
 # generated eval runs (reports, scores). never commit
 eval/runs/
 
+# local connector config written by the panel wizard. per-machine, not shared
+designmd-loop.config.json
+
 # secrets and env. never commit
 .env
 .env.*
