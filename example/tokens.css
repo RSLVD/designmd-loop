@@ -1,0 +1,17 @@
+/* The "live code" for the demo. In a real project this is your globals.css,
+   theme file, or Tailwind config. The drift monitor (eval/sync.mjs) diffs the
+   colors declared here against DESIGN.md and tells you when they disagree.
+
+   This file is intentionally IN SYNC with DESIGN.md so the demo passes. Try
+   editing a value or adding a new color, then run `npm run sync` to watch the
+   monitor flag the drift. */
+:root {
+  --bg: #f6f4ef;
+  --surface: #ffffff;
+  --ink: #1b1b1a;
+  --primary: #1b1b1a;
+  --muted: #6b6a66;
+  --accent: #3a6ea5;
+  --accent-strong: #2c5680;
+  --line: rgba(27, 27, 26, 0.12);
+}

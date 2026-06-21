@@ -1,0 +1,17 @@
+# dependencies
+node_modules/
+
+# generated eval runs (reports, scores). never commit
+eval/runs/
+
+# secrets and env. never commit
+.env
+.env.*
+*.local
+
+# OS / editor cruft
+.DS_Store
+.fuse_hidden*
+*.swp
+.idea/
+.vscode/

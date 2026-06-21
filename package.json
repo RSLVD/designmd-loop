@@ -1,0 +1,19 @@
+{
+  "name": "designmd-loop",
+  "version": "0.1.0",
+  "description": "Turn a DESIGN.md into a self-checking design loop: lint, a token gate, a drift monitor, and a headless HTML report. Built on top of @google/design.md.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "private": false,
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "demo": "node eval/runner.mjs --selftest && npm run lint && npm run sync && npm run report",
+    "lint": "npx -y @google/design.md lint DESIGN.md",
+    "sync": "node eval/sync.mjs",
+    "gate": "node eval/runner.mjs --selftest",
+    "report": "node eval/runner.mjs --report",
+    "check": "npm run lint && npm run sync"
+  },
+  "keywords": ["design.md", "design-system", "design-tokens", "lint", "eval"],
+  "repository": { "type": "git", "url": "" }
+}

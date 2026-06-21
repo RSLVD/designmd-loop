@@ -1,0 +1,25 @@
+name: design-check
+
+# Runs the design loop on every push and PR: lint the spec, then check the live
+# code has not drifted from it. Fails the build if either breaks. No secrets needed
+# (the deterministic loop is fully offline; the Claude judge is opt-in and local).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  design-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Lint DESIGN.md
+        run: npx -y @google/design.md lint DESIGN.md
+      - name: Drift monitor
+        run: node eval/sync.mjs
+      - name: Token gate self-test
+        run: node eval/runner.mjs --selftest
