@@ -162,6 +162,116 @@ const swatch = (hex, label, tag, tagClass) => `
     <span class="swname">${esc(label)}</span>
   </div>`;
 
+// ============================================================
+//  EDIT YOUR THEME HERE  (the panel + the readme both use this)
+//  Swap any color below. To switch without thinking, move the
+//  comment: wrap the active line in slash-star and unwrap an
+//  alternate. CSS comments are slash-star ... star-slash, not //.
+//  Every variable is used everywhere, so one change re-skins all.
+// ============================================================
+const THEME = `:root{
+  /* --- the ground: paper + ink --- */
+  --bg:#faf9f5;        /* warm ivory page */
+  /* --bg:#f6f4ef; */  /* alt: cooler paper */
+  /* --bg:#100f0e; */  /* alt: near-black (also set --ink light) */
+  --bg-2:#f2efe7;      /* alternating band */
+  --panel:#ffffff;     /* raised card */
+  --panel-2:#f6f3ec;   /* card, tinted */
+  --ink:#1a1916;       /* near-black text + primary actions */
+  /* --ink:#1b1b1a; */ /* alt: neutral graphite */
+  --muted:#5c5950;     /* secondary copy */
+  --dim:#928e84;       /* metadata */
+
+  /* --- the one accent (keep it scarce) --- */
+  --clay:#cc785c;        /* RSLVD clay  <-- your signature color */
+  /* --clay:#3a6ea5; */  /* alt: blue */
+  /* --clay:#2f8f6b; */  /* alt: green */
+  /* --clay:#7c5cff; */  /* alt: violet */
+  --clay-strong:#b86346; /* hover / pressed */
+  --clay-dim:#e2bcab;    /* faint tint */
+  --clay-glow:rgba(204,120,92,.22); /* focus ring */
+
+  /* --- hairlines (depth is lines, not shadows) --- */
+  --line:rgba(28,25,20,.10);--line-2:rgba(28,25,20,.18);--line-3:rgba(28,25,20,.28);
+
+  /* --- dark moment (the masthead) --- */
+  --d-bg:#1a1916;--d-bg-2:#232019;--d-txt:#faf9f5;--d-muted:#b8b4a8;--d-line:rgba(250,249,245,.16);
+
+  /* --- type --- */
+  --sans:'Space Grotesk',system-ui,-apple-system,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+}`;
+
+// ---- Minimal markdown -> HTML so the README renders in-brand ----------------
+
+function mdInline(s) {
+  return esc(s)
+    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (m, a, u) => `<img alt="${a}" src="/${u.replace(/^\.?\//, '')}">`)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+}
+function renderMarkdown(md) {
+  const L = md.replace(/\r/g, '').split('\n');
+  let html = '', i = 0;
+  const isBreak = (ln, nx) => /^(#{1,4}\s|```|>\s?|\s*[-*]\s|\s*\d+\.\s)/.test(ln) || (ln.includes('|') && /^[\s|:-]+$/.test(nx || ''));
+  while (i < L.length) {
+    const ln = L[i];
+    if (/^```/.test(ln)) { const b = []; i++; while (i < L.length && !/^```/.test(L[i])) b.push(L[i++]); i++; html += `<pre><code>${esc(b.join('\n'))}</code></pre>`; continue; }
+    const h = ln.match(/^(#{1,4})\s+(.*)$/); if (h) { const n = h[1].length; html += `<h${n}>${mdInline(h[2])}</h${n}>`; i++; continue; }
+    if (ln.includes('|') && /^[\s|:-]+$/.test(L[i + 1] || '')) {
+      const cells = (r) => r.split('|').map((c) => c.trim()).filter((c, idx, a) => !(idx === 0 && c === '') && !(idx === a.length - 1 && c === ''));
+      const head = cells(ln); i += 2; const rows = [];
+      while (i < L.length && L[i].includes('|')) rows.push(cells(L[i++]));
+      html += `<table><thead><tr>${head.map((c) => `<th>${mdInline(c)}</th>`).join('')}</tr></thead><tbody>${rows.map((r) => `<tr>${r.map((c) => `<td>${mdInline(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+      continue;
+    }
+    if (/^>\s?/.test(ln)) { const b = []; while (i < L.length && /^>\s?/.test(L[i])) b.push(L[i++].replace(/^>\s?/, '')); html += `<blockquote>${mdInline(b.join(' '))}</blockquote>`; continue; }
+    if (/^\s*[-*]\s+/.test(ln)) { const b = []; while (i < L.length && /^\s*[-*]\s+/.test(L[i])) b.push(L[i++].replace(/^\s*[-*]\s+/, '')); html += `<ul>${b.map((x) => `<li>${mdInline(x)}</li>`).join('')}</ul>`; continue; }
+    if (/^\s*\d+\.\s+/.test(ln)) { const b = []; while (i < L.length && /^\s*\d+\.\s+/.test(L[i])) b.push(L[i++].replace(/^\s*\d+\.\s+/, '')); html += `<ol>${b.map((x) => `<li>${mdInline(x)}</li>`).join('')}</ol>`; continue; }
+    if (/^\s*$/.test(ln)) { i++; continue; }
+    const b = [ln]; i++;
+    while (i < L.length && !/^\s*$/.test(L[i]) && !isBreak(L[i], L[i + 1])) b.push(L[i++]);
+    html += `<p>${mdInline(b.join(' '))}</p>`;
+  }
+  return html;
+}
+function readmePage() {
+  let md = ''; try { md = readFileSync(join(REPO_ROOT, 'README.md'), 'utf8'); } catch { md = '# README not found'; }
+  return `<!doctype html><html lang="en"><head><meta charset="utf8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RSLVD &middot; readme</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>${THEME}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6}
+.mast{background:var(--d-bg);color:var(--d-txt);border-bottom:1px solid var(--d-line)}
+.mast .wrap{display:flex;justify-content:space-between;align-items:center;max-width:820px;margin:0 auto;padding:22px 28px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--clay)}
+.lnk{font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;padding:11px 16px;border-radius:4px;border:1px solid var(--d-line);color:var(--d-txt);text-decoration:none}
+.lnk:hover{border-color:var(--clay);color:var(--clay)}
+.doc{max-width:820px;margin:0 auto;padding:44px 28px 96px}
+.doc h1{font-size:40px;font-weight:700;letter-spacing:-.02em;line-height:1.05;margin:8px 0 14px}
+.doc h2{font-size:13px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;color:var(--clay);font-weight:500;margin:40px 0 12px}
+.doc h3{font-size:20px;font-weight:600;margin:28px 0 10px}
+.doc p{margin:0 0 14px;max-width:680px}
+.doc a{color:var(--clay-strong);text-decoration:none;border-bottom:1px solid var(--clay-dim)}
+.doc a:hover{color:var(--clay)}
+.doc ul,.doc ol{margin:0 0 16px 22px}.doc li{margin:6px 0;max-width:660px}
+.doc code{font-family:var(--mono);font-size:13px;background:var(--panel-2);border:1px solid var(--line);border-radius:3px;padding:2px 6px}
+.doc pre{background:var(--d-bg);border-radius:6px;padding:18px 20px;overflow:auto;margin:0 0 18px}
+.doc pre code{background:none;border:0;color:var(--d-txt);font-size:12.5px;line-height:1.55;padding:0;white-space:pre}
+.doc blockquote{border-left:3px solid var(--clay);background:var(--panel-2);padding:12px 18px;margin:0 0 16px;color:var(--muted)}
+.doc table{border-collapse:collapse;width:100%;margin:0 0 18px;font-size:14px}
+.doc th,.doc td{border:1px solid var(--line-2);padding:9px 12px;text-align:left;vertical-align:top}
+.doc th{background:var(--panel-2);font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--dim)}
+.doc img{max-width:100%;border:1px solid var(--line-2);border-radius:6px;margin:6px 0 18px}
+</style></head><body>
+<div class="mast"><div class="wrap"><div class="eyebrow">design.md loop &middot; from RSLVD</div><a class="lnk" href="/">&larr; back to panel</a></div></div>
+<div class="doc">${renderMarkdown(md)}</div>
+</body></html>`;
+}
+
 function page() {
   const s = snapshot();
   const drift = s.evolved.length + s.stale.length;
@@ -202,15 +312,7 @@ function page() {
 <title>RSLVD &middot; design.md loop panel</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-:root{
-  --bg:#faf9f5;--bg-2:#f2efe7;--panel:#fff;--panel-2:#f6f3ec;
-  --ink:#1a1916;--muted:#5c5950;--dim:#928e84;
-  --clay:#cc785c;--clay-strong:#b86346;--clay-dim:#e2bcab;--clay-glow:rgba(204,120,92,.22);
-  --line:rgba(28,25,20,.10);--line-2:rgba(28,25,20,.18);--line-3:rgba(28,25,20,.28);
-  --d-bg:#1a1916;--d-bg-2:#232019;--d-txt:#faf9f5;--d-muted:#b8b4a8;--d-line:rgba(250,249,245,.16);
-  --sans:'Space Grotesk',system-ui,-apple-system,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace;
-}
+<style>${THEME}
 *{box-sizing:border-box;margin:0}
 body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.5;-webkit-font-smoothing:antialiased}
 .wrap{max-width:1140px;margin:0 auto;padding:0 28px}
@@ -315,6 +417,7 @@ textarea{min-height:84px;resize:vertical;line-height:1.6}
   </div>
   <div class="mast-right">
     <span class="badge ${pass ? 'pass' : 'attn'}">${pass ? 'all checks pass' : 'needs attention'}</span>
+    <a class="btn btn-ghost" href="/readme" style="text-decoration:none;display:inline-block">Read me</a>
     <button class="btn btn-cta" onclick="openWiz()">Add connectors</button>
   </div>
 </div></div>
@@ -540,6 +643,21 @@ const server = createServer(async (req, res) => {
     const file = found ? resolve(found.path) : null;
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
     return res.end(file && existsSync(file) ? readFileSync(file) : `<!doctype html><body style="font-family:monospace;color:#928e84;padding:20px">sample "${esc(id)}" not found`);
+  }
+
+  if (url === '/readme') {
+    try { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' }); return res.end(readmePage()); }
+    catch (e) { res.writeHead(500, { 'content-type': 'text/plain' }); return res.end('readme error: ' + e.message); }
+  }
+
+  if (/\.(png|jpe?g|svg|gif|webp)$/i.test(url)) {
+    const file = join(REPO_ROOT, decodeURIComponent(url.replace(/^\/+/, '')));
+    if (existsSync(file) && file.startsWith(REPO_ROOT)) {
+      const ext = (url.match(/\.(\w+)$/) || [])[1].toLowerCase();
+      const ct = ext === 'svg' ? 'image/svg+xml' : ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : 'image/' + ext;
+      res.writeHead(200, { 'content-type': ct, 'cache-control': 'no-store' });
+      return res.end(readFileSync(file));
+    }
   }
 
   if (url === '/' || url === '/index.html') {
