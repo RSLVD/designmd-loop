@@ -19,7 +19,7 @@ No dependencies to install. No build. The whole loop is plain Node.
 The repo ships a complete, fictional example design system ("Meridian") so you can run the whole loop with zero setup. There is nothing to `npm install`.
 
 ```bash
-git clone <this-repo> && cd designmd-loop
+git clone https://github.com/RSLVD/designmd-loop && cd designmd-loop
 npm start
 ```
 
@@ -43,7 +43,7 @@ That is the loop, made visible: the spec tracks the code, not the other way arou
 
 You do not have to run anything by hand. Open a fresh Claude Code session and paste this, with the repo URL:
 
-> Clone `https://github.com/<you>/designmd-loop`, set it up as a project, and start the design panel on localhost. Then walk me through pointing it at this project's CSS with the connector wizard.
+> Clone `https://github.com/RSLVD/designmd-loop`, set it up as a project, and start the design panel on localhost. Then walk me through pointing it at this project's CSS with the connector wizard.
 
 Claude clones the repo, runs `npm start` (no install needed), and hands you the localhost URL. The repo ships a `CLAUDE.md` and a Claude Code skill (`.claude/skills/designmd-loop/`) so the session already knows how to run the loop and reason about drift.
 
