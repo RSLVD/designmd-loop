@@ -95,7 +95,8 @@ function specColors(fm) {
 }
 function liveColors(livePath) {
   if (!existsSync(resolve(livePath))) return new Map();
-  const css = readFileSync(resolve(livePath), 'utf8');
+  // Strip CSS comments first, so a commented-out token is ignored (toggle it on to test).
+  const css = readFileSync(resolve(livePath), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
   const decls = css.match(/--[\w-]+:\s*(#[0-9a-fA-F]{6}\b|rgba?\([^)]*\))/g) || [];
   const out = new Map();
   for (const d of decls) { const v = (d.match(colorRe) || [])[0]; if (v) out.set(norm(v), v.replace(/\s+/g, ' ')); }
@@ -399,6 +400,8 @@ section.body{padding:40px 0 88px}
 .findings{list-style:none;padding:11px 15px;font-family:var(--mono);font-size:11px;line-height:1.8}
 .f-fail{color:var(--clay-strong)}.f-warn{color:var(--muted)}.f-ok{color:var(--muted)}
 .swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.swatches.clickable{cursor:pointer}
+.swatches.clickable:hover .sw{border-color:var(--clay-dim)}
 .sw{border:1px solid var(--line-2);border-radius:4px;padding:11px;background:var(--bg)}
 .chip{display:block;height:38px;border-radius:3px;border:1px solid var(--line-2)}
 .swmeta{display:flex;justify-content:space-between;align-items:center;margin-top:9px}
@@ -513,7 +516,7 @@ textarea{min-height:84px;resize:vertical;line-height:1.6}
 <div class="panel" id="tokens">
   <h2>Tokens &middot; spec vs live code <span class="he" style="margin-left:8px"><button class="mini" onclick="openEditor('${esc(rel(s.cfg.live))}')">edit css</button><a class="mini" href="/raw?path=${encodeURIComponent(rel(s.cfg.live))}" target="_blank" rel="noopener">view css</a></span></h2>
   <p class="hint">${driftLine}. Change a token and a new <span class="tag alert">evolved</span> swatch appears, the drift card turns. The code is the source of truth; the spec tracks it.</p>
-  <div class="swatches">${specSwatches}${evolvedSwatches}</div>
+  <div class="swatches clickable" title="click to edit ${esc(rel(s.cfg.live))}" onclick="openEditor('${esc(rel(s.cfg.live))}')">${specSwatches}${evolvedSwatches}</div>
   ${s.retired.length ? `<h2 style="margin-top:24px">Retired &middot; the gate fails any of these</h2><div class="swatches">${retiredSwatches}</div>` : ''}
 </div>
 
@@ -688,7 +691,7 @@ async function save(){
 
 // ---- Server ------------------------------------------------------------------
 
-let version = 1, sig = '';
+let version = Date.now(), sig = '';
 function currentSig() {
   const c = loadConfig();
   const files = [CONFIG_PATH, resolve(c.spec), resolve(c.live), ...c.samples.map((s) => resolve(s.path))];

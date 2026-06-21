@@ -48,7 +48,8 @@ function specColors() {
 // Live values: only CSS custom-property declarations, so we read the design
 // language the code actually ships, not one-off inline colors.
 function liveColors() {
-  const css = readFileSync(LIVE, 'utf8');
+  // Strip CSS comments so a commented-out token is ignored (toggle it on to test drift).
+  const css = readFileSync(LIVE, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
   const decls = css.match(/--[\w-]+:\s*(#[0-9a-fA-F]{6}\b|rgba?\([^)]*\))/g) || [];
   const out = new Map();
   for (const d of decls) {

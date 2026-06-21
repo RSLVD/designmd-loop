@@ -14,4 +14,9 @@
   --accent: #3a6ea5;
   --accent-strong: #2c5680;
   --line: rgba(27, 27, 26, 0.12);
+
+  /* --- TEST THE LOOP: uncomment a line below, save, watch the panel. --- */
+  /* Comments are ignored by the monitor, so these do nothing until you remove the slashes. */
+  /* --brand: #d23f87; */   /* adds a color the spec does not have -> EVOLVED (drift) */
+  /* --accent: #c0392b; */  /* a second accent value the spec lacks -> EVOLVED (drift) */
 }
