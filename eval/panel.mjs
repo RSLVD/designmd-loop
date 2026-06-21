@@ -308,8 +308,11 @@ function page() {
     const findings = (x.gate?.findings || []).map((f) => `<li class="f-${f.level}">${esc(f.rule)}: ${esc(f.msg)}</li>`).join('');
     return `
     <div class="sample">
-      <div class="sample-head"><b>${esc(x.id)}</b><span class="tag ${cls}">${v}</span></div>
-      <iframe class="frame" src="/sample/${encodeURIComponent(x.id)}" title="${esc(x.id)} sample"></iframe>
+      <div class="sample-head"><b>${esc(x.id)}</b><span class="he"><button class="mini" onclick="openEditor('${esc(x.path)}')">edit</button><span class="tag ${cls}">${v}</span></span></div>
+      <div class="frame-wrap" onclick="openEditor('${esc(x.path)}')" title="click to edit ${esc(x.path)}">
+        <iframe class="frame" src="/sample/${encodeURIComponent(x.id)}" title="${esc(x.id)} sample"></iframe>
+        <span class="ec">click to edit</span>
+      </div>
       <ul class="findings"><li class="${x.asExpected ? 'f-ok' : 'f-fail'}">${note}</li>${findings || '<li class="f-ok">no findings</li>'}</ul>
     </div>`;
   };
@@ -369,7 +372,24 @@ section.body{padding:40px 0 88px}
 .samples{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
 .sample{border:1px solid var(--line-2);border-radius:4px;overflow:hidden;background:var(--bg)}
 .sample-head{display:flex;justify-content:space-between;align-items:center;padding:11px 15px;background:var(--panel-2);border-bottom:1px solid var(--line);font-size:13px;font-family:var(--mono)}
-.frame{width:100%;height:150px;border:0;background:#fff;display:block}
+.frame{width:100%;height:150px;border:0;background:#fff;display:block;pointer-events:none}
+.frame-wrap{position:relative;cursor:pointer}
+.frame-wrap:hover{box-shadow:inset 0 0 0 2px var(--clay)}
+.ec{position:absolute;top:8px;right:8px;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em;background:var(--clay);color:#fff;padding:3px 7px;border-radius:3px;opacity:0;transition:.12s;pointer-events:none}
+.frame-wrap:hover .ec{opacity:1}
+.he{display:flex;align-items:center;gap:8px}
+.mini{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em;background:none;border:1px solid var(--line-2);border-radius:3px;padding:3px 8px;cursor:pointer;color:var(--muted)}
+.mini:hover{border-color:var(--clay);color:var(--clay-strong)}
+.ed-scrim{position:fixed;inset:0;background:rgba(26,25,22,.55);opacity:0;pointer-events:none;transition:.18s;z-index:60}
+.ed-scrim.open{opacity:1;pointer-events:auto}
+.editor{position:fixed;top:50%;left:50%;transform:translate(-50%,-46%) scale(.98);opacity:0;pointer-events:none;width:min(860px,94vw);height:min(80vh,720px);background:var(--bg);border:1px solid var(--line-3);border-radius:6px;z-index:70;display:flex;flex-direction:column;transition:.18s;box-shadow:0 30px 80px rgba(26,25,22,.3)}
+.editor.open{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1)}
+.ed-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px;background:var(--d-bg);color:var(--d-txt);border-radius:6px 6px 0 0}
+.ed-head b{font-family:var(--mono);font-size:13px}
+.ed-head .grp{display:flex;gap:8px}
+#ed-text{flex:1;width:100%;border:0;padding:18px;font-family:var(--mono);font-size:13px;line-height:1.6;background:var(--panel);color:var(--ink);resize:none;outline:none}
+.ed-foot{display:flex;justify-content:space-between;align-items:center;padding:10px 18px;border-top:1px solid var(--line-2);font-family:var(--mono);font-size:11px;color:var(--dim)}
+#ed-status{color:var(--clay-strong)}
 .frame.miss{display:flex;align-items:center;justify-content:center;color:var(--dim);font-family:var(--mono);font-size:12px;height:120px}
 .findings{list-style:none;padding:11px 15px;font-family:var(--mono);font-size:11px;line-height:1.8}
 .f-fail{color:var(--clay-strong)}.f-warn{color:var(--muted)}.f-ok{color:var(--muted)}
@@ -452,13 +472,13 @@ textarea{min-height:84px;resize:vertical;line-height:1.6}
 
 <div class="panel">
   <h2>The visual test &middot; token gate</h2>
-  <p class="hint">The same gate that runs in CI, rendered. A compliant screen passes; a broken one is caught on the spec's own rules. Edit a sample file and save to watch a verdict flip.</p>
+  <p class="hint">Each screen scored against the spec, live. <b>Click a tile to edit its code</b> and watch the verdict flip.</p>
   <div class="samples">${s.samples.map(sampleCard).join('')}</div>
 </div>
 
 <div class="panel">
-  <h2>Tokens &middot; spec vs live code</h2>
-  <p class="hint">${driftLine}. Add or change a color in <code>${esc(rel(s.cfg.live))}</code> and save: a new <span class="tag alert">evolved</span> swatch appears and the drift card turns. The code is the source of truth; the spec tracks it.</p>
+  <h2>Tokens &middot; spec vs live code <button class="mini" style="margin-left:8px" onclick="openEditor('${esc(rel(s.cfg.live))}')">edit css</button></h2>
+  <p class="hint">${driftLine}. Change a token and a new <span class="tag alert">evolved</span> swatch appears, the drift card turns. The code is the source of truth; the spec tracks it.</p>
   <div class="swatches">${specSwatches}${evolvedSwatches}</div>
   ${s.retired.length ? `<h2 style="margin-top:24px">Retired &middot; the gate fails any of these</h2><div class="swatches">${retiredSwatches}</div>` : ''}
 </div>
@@ -540,9 +560,45 @@ textarea{min-height:84px;resize:vertical;line-height:1.6}
   </div>
 </aside>
 
+<!-- Inline file editor -->
+<div class="ed-scrim" id="ed-scrim" onclick="closeEditor()"></div>
+<div class="editor" id="editor" aria-hidden="true">
+  <div class="ed-head"><b id="ed-title"></b><span class="grp">
+    <button class="btn btn-ghost" onclick="openInEditor()">Open in editor</button>
+    <button class="btn btn-ghost" onclick="closeEditor()">Cancel</button>
+    <button class="btn btn-cta" onclick="saveEditor()">Save</button>
+  </span></div>
+  <textarea id="ed-text" spellcheck="false"></textarea>
+  <div class="ed-foot"><span id="ed-status"></span><span>saving writes the file and re-runs the loop</span></div>
+</div>
+
 <script>
 let v=null;
 setInterval(async()=>{try{const r=await fetch('/api/version',{cache:'no-store'});const{version}=await r.json();if(v===null)v=version;else if(version!==v)location.reload();}catch{}},700);
+
+let edPath=null;
+async function openEditor(path){
+  edPath=path;
+  document.getElementById('ed-title').textContent=path;
+  document.getElementById('ed-status').textContent='loading...';
+  try{const r=await fetch('/api/file?path='+encodeURIComponent(path));const j=await r.json();
+    document.getElementById('ed-text').value=j.ok?j.content:('// '+(j.error||'could not read'));
+    document.getElementById('ed-status').textContent='';}
+  catch{document.getElementById('ed-status').textContent='could not read file';}
+  document.getElementById('ed-scrim').classList.add('open');
+  document.getElementById('editor').classList.add('open');
+}
+function closeEditor(){document.getElementById('ed-scrim').classList.remove('open');document.getElementById('editor').classList.remove('open');}
+async function saveEditor(){
+  const content=document.getElementById('ed-text').value;const st=document.getElementById('ed-status');st.textContent='saving...';
+  try{const r=await fetch('/api/file',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({path:edPath,content})});
+    const j=await r.json();
+    if(j.ok){st.textContent='saved';setTimeout(()=>{closeEditor();location.reload();},250);}
+    else st.textContent='error: '+(j.error||'write failed');}
+  catch{st.textContent='could not reach server';}
+}
+async function openInEditor(){try{await fetch('/api/open',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({path:edPath})});}catch{}}
+document.addEventListener('keydown',(e)=>{if(e.key==='Escape')closeEditor();if((e.metaKey||e.ctrlKey)&&e.key==='s'&&document.getElementById('editor').classList.contains('open')){e.preventDefault();saveEditor();}});
 
 let cur=0;const STEPS=5;
 function openWiz(){document.getElementById('scrim').classList.add('open');document.getElementById('wiz').classList.add('open');cur=0;render();}
@@ -649,6 +705,33 @@ const server = createServer(async (req, res) => {
       lintCache = null; lintKey = '';
       return json({ ok: true });
     } catch (e) { return json({ ok: false, error: e.message }, 500); }
+  }
+
+  // Read a repo file for the inline editor.
+  if (url === '/api/file' && req.method === 'GET') {
+    const p = new URL(req.url, 'http://x').searchParams.get('path') || '';
+    const file = resolve(p);
+    if (!file.startsWith(REPO_ROOT)) return json({ ok: false, error: 'path outside repo' }, 400);
+    if (!existsSync(file)) return json({ ok: false, error: 'file not found' });
+    try { return json({ ok: true, content: readFileSync(file, 'utf8') }); }
+    catch (e) { return json({ ok: false, error: e.message }); }
+  }
+  // Write a repo file from the inline editor.
+  if (url === '/api/file' && req.method === 'POST') {
+    const { path: p, content } = await readBody(req);
+    const file = resolve(p || '');
+    if (!file.startsWith(REPO_ROOT)) return json({ ok: false, error: 'path outside repo' }, 400);
+    try { writeFileSync(file, String(content ?? '')); lintCache = null; lintKey = ''; return json({ ok: true }); }
+    catch (e) { return json({ ok: false, error: e.message }, 500); }
+  }
+  // Open a repo file in the OS default editor.
+  if (url === '/api/open' && req.method === 'POST') {
+    const { path: p } = await readBody(req);
+    const file = resolve(p || '');
+    if (!file.startsWith(REPO_ROOT) || !existsSync(file)) return json({ ok: false, error: 'bad path' }, 400);
+    const cmd = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open';
+    try { spawn(cmd, [file], { stdio: 'ignore', detached: true, shell: process.platform === 'win32' }).unref(); return json({ ok: true }); }
+    catch (e) { return json({ ok: false, error: e.message }); }
   }
 
   if (url.startsWith('/sample/')) {
